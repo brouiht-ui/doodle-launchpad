@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {Keypair,Transaction,SystemProgram} from '@solana/web3.js';
+import {rewardLamports,decodeApprovedTransaction} from '../lib/transaction-security.ts';
+assert.equal(rewardLamports('0.000000001'),BigInt(1));
+assert.equal(rewardLamports('1.123456789'),BigInt(1123456789));
+assert.equal(rewardLamports('10000'),BigInt(10000000000000));
+for(const n of ['0','-1','0.0000000001','1e3','10000.000000001','NaN'])assert.throws(()=>rewardLamports(n));
+const payer=Keypair.generate(),recipient=Keypair.generate(),attacker=Keypair.generate();
+const tx=new Transaction({feePayer:payer.publicKey,recentBlockhash:Keypair.generate().publicKey.toBase58()}).add(SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:recipient.publicKey,lamports:rewardLamports('0.1')}));
+const message=tx.serializeMessage().toString('base64');
+assert.throws(()=>decodeApprovedTransaction(Array.from(tx.serialize({requireAllSignatures:false})),message));
+tx.sign(payer);assert.ok(decodeApprovedTransaction(Array.from(tx.serialize()),message));
+const changed=new Transaction({feePayer:payer.publicKey,recentBlockhash:tx.recentBlockhash}).add(SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:attacker.publicKey,lamports:rewardLamports('0.1')}));changed.sign(payer);
+assert.throws(()=>decodeApprovedTransaction(Array.from(changed.serialize()),message));
+const increased=new Transaction({feePayer:payer.publicKey,recentBlockhash:tx.recentBlockhash}).add(SystemProgram.transfer({fromPubkey:payer.publicKey,toPubkey:recipient.publicKey,lamports:rewardLamports('1')}));increased.sign(payer);
+assert.throws(()=>decodeApprovedTransaction(Array.from(increased.serialize()),message));
+console.log('PASS: exact lamport conversion; zero/negative/overprecision/oversize rejection; unsigned, redirected, and increased payments rejected. No chain transactions sent.');

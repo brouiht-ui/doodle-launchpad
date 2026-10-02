@@ -1,0 +1,16 @@
+import {sql} from 'drizzle-orm';
+// Intentionally empty by default.
+// Add Drizzle tables here when the site actually needs a database.
+// See examples/d1/db/schema.ts for an opt-in example.
+import {sqliteTable,text,integer,index,uniqueIndex} from 'drizzle-orm/sqlite-core';
+export const coins=sqliteTable('coins',{id:text('id').primaryKey(),owner:text('owner').notNull(),name:text('name').notNull(),symbol:text('symbol').notNull(),description:text('description').notNull(),pair:text('pair').notNull(),image:text('image').notNull(),communityBps:integer('communityBps').notNull(),status:text('status').notNull().default('draft'),createdAt:integer('createdAt').notNull(),mint:text('mint'),signature:text('signature')},t=>[index('idx_coins_created').on(t.createdAt)]);
+export const challenges=sqliteTable('challenges',{nonce:text('nonce').primaryKey(),address:text('address').notNull(),message:text('message').notNull(),expires:integer('expires').notNull()},t=>[index('idx_challenges_address').on(t.address,t.expires)]);
+export const sessions=sqliteTable('sessions',{hash:text('hash').primaryKey(),address:text('address').notNull(),expires:integer('expires').notNull()});
+export const rates=sqliteTable('rates',{key:text('key').primaryKey(),count:integer('count').notNull(),expires:integer('expires').notNull()});
+export const assets=sqliteTable('assets',{id:text('id').primaryKey(),owner:text('owner').notNull(),source:text('source').notNull().default('legacy'),drawingHash:text('drawingHash'),createdAt:integer('createdAt').notNull()});
+export const jobs=sqliteTable('jobs',{id:text('id').primaryKey(),coinId:text('coinId').notNull().references(()=>coins.id),owner:text('owner').notNull(),title:text('title').notNull(),description:text('description').notNull(),reward:text('reward').notNull(),status:text('status').notNull().default('open'),createdAt:integer('createdAt').notNull()},t=>[index('idx_jobs_coin').on(t.coinId),index('idx_jobs_created').on(t.createdAt)]);
+export const submissions=sqliteTable('submissions',{id:text('id').primaryKey(),jobId:text('jobId').notNull().references(()=>jobs.id),wallet:text('wallet').notNull(),url:text('url').notNull(),note:text('note').notNull(),status:text('status').notNull().default('submitted'),signature:text('signature'),createdAt:integer('createdAt').notNull()},t=>[uniqueIndex('idx_submissions_job_wallet').on(t.jobId,t.wallet),uniqueIndex('idx_submissions_signature').on(t.signature)]);
+export const intents=sqliteTable('intents',{id:text('id').primaryKey(),kind:text('kind').notNull(),owner:text('owner').notNull(),entityId:text('entityId').notNull(),target:text('target').notNull(),message:text('message').notNull(),transaction:text('transaction').notNull(),expires:integer('expires').notNull(),signature:text('signature'),state:text('state').notNull().default('prepared'),meta:text('meta').notNull()},t=>[index('idx_intents_entity').on(t.entityId,t.state),uniqueIndex('idx_intents_active').on(t.kind,t.entityId).where(sql`state IN ('prepared','submitted')`)]);
+
+
+export const coinPages=sqliteTable('coin_pages',{coinId:text('coinId').primaryKey().references(()=>coins.id),content:text('content').notNull(),revision:integer('revision').notNull(),updatedAt:integer('updatedAt').notNull()});

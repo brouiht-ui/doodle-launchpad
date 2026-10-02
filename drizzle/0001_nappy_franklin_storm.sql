@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `idx_intents_active` ON `intents` (`kind`,`entityId`) WHERE state IN ('prepared','submitted');

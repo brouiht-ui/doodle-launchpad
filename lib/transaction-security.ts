@@ -1,0 +1,3 @@
+import {Transaction} from '@solana/web3.js';
+export function rewardLamports(value:string){if(!/^\d{1,5}(\.\d{1,9})?$/.test(value))throw new Error('Invalid SOL amount');const [whole,fraction='']=value.split('.');const amount=BigInt(whole)*BigInt(1000000000)+BigInt(fraction.padEnd(9,'0'));if(amount<=BigInt(0)||amount>BigInt(10000000000000))throw new Error('Reward outside allowed range');return amount}
+export function decodeApprovedTransaction(raw:number[],expectedMessage:string){const tx=Transaction.from(Buffer.from(raw));if(tx.serializeMessage().toString('base64')!==expectedMessage||!tx.verifySignatures())throw new Error('Signed transaction does not match approved intent');return tx}
